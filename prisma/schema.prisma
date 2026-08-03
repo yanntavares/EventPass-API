@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum EventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELED
+}
+
+model User {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  fullName      String  
+  dateBirth     DateTime
+  phoneNumber   String
+  events        Events[]  // one-to-many relation with Events model
+  status        UserStatus      @default(ACTIVE)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Events {
+  id            String          @id @default(uuid())
+  title         String
+  description   String?
+  startDateTime DateTime
+  endDateTime   DateTime
+  status        EventStatus     @default(SCHEDULED)
+  userID        String          // Foreign key to User model
+  user          User            @relation(fields: [userID], references: [id]) // Relation to User model
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
