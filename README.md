@@ -1,98 +1,100 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# EventPass API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API RESTful de agendamento de eventos, desenvolvida para aplicação dos treinamentos do onboarding de 2026.2 da Seed a Bit Tecnologia na trilha de back-end, com aplicação de boas práticas e código limpo.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Sobre o projeto
 
-## Description
+A aplicação expõe um CRUD de **usuários** e **eventos**, permitindo que cada usuário agende eventos em um intervalo de data/hora, com validações e regras de negócio para evitar dados inconsistentes:
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- E-mail de usuário único (não permite cadastro duplicado).
+- Datas de evento sempre no futuro, com término após o início.
+- Não é possível criar eventos para usuários inativos.
+- Não é possível agendar dois eventos com horários conflitantes para o mesmo usuário.
+- Exclusões são "soft delete": usuários são marcados como `INACTIVE` (e seus eventos agendados são cancelados) e eventos são marcados como `CANCELED`, sem remoção definitiva dos dados.
 
-## Project setup
+## Stack utilizada
+
+- **NestJS 11** — framework principal (TypeScript).
+- **Prisma ORM 7** com adapter `@prisma/adapter-pg` — acesso a dados.
+- **PostgreSQL** — banco de dados.
+- **class-validator** / **class-transformer** — validação e transformação de DTOs.
+- **@nestjs/swagger** — documentação OpenAPI gerada automaticamente.
+- **ESLint** + **Prettier** — padronização e qualidade de código.
+
+## Metodologia
+
+- **Arquitetura modular** do Nest: cada domínio (`user`, `events`, `prisma`) é um módulo isolado com `controller`, `service`, `module`, `dto/` e documentação Swagger própria.
+- **Validação global** de entrada via `ValidationPipe` (`transform`, `whitelist`, `forbidNonWhitelisted`), configurada em `src/main.ts`.
+- **Validadores customizados** (`src/common/date.decorators.ts`): `IsDateInFuture` e `IsGreaterThan(propriedade)`, usados para validar as datas de início/término de um evento.
+- **Regras de negócio na camada de serviço**, não em decorators assíncronos — checagens que dependem do banco (e-mail duplicado, usuário ativo, conflito de horário) ficam nos `services`, mantendo os DTOs responsáveis apenas por validação de formato.
+- **Soft delete**: nenhum registro é removido fisicamente; status (`ACTIVE`/`INACTIVE`, `SCHEDULED`/`COMPLETED`/`CANCELED`) controla o ciclo de vida.
+
+## Modelo de dados
+
+**User**
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | UUID | gerado automaticamente |
+| email | String | único |
+| fullName | String | |
+| dateBirth | DateTime | |
+| phoneNumber | String | |
+| status | `ACTIVE` \| `INACTIVE` | padrão `ACTIVE` |
+| createdAt / updatedAt | DateTime | automáticos |
+
+**Events**
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | UUID | gerado automaticamente |
+| title | String | |
+| description | String? | opcional |
+| startDateTime / endDateTime | DateTime | término deve ser após o início |
+| status | `SCHEDULED` \| `COMPLETED` \| `CANCELED` | padrão `SCHEDULED` |
+| userID | UUID | referencia `User` |
+| createdAt / updatedAt | DateTime | automáticos |
+
+## Endpoints
+
+### Usuários (`/user`)
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/user` | Cria um usuário |
+| GET | `/user` | Lista todos os usuários |
+| GET | `/user/:id` | Busca um usuário por id |
+| PATCH | `/user/:id` | Atualiza um usuário |
+| DELETE | `/user/:id` | Inativa um usuário e cancela seus eventos agendados |
+| GET | `/user/:id/events` | Lista os eventos de um usuário |
+
+### Eventos (`/events`)
+| Método | Rota | Descrição |
+|---|---|---|
+| POST | `/events` | Cria um evento |
+| GET | `/events` | Lista todos os eventos |
+| GET | `/events/:id` | Busca um evento por id |
+| PATCH | `/events/:id` | Atualiza um evento |
+| DELETE | `/events/:id` | Cancela um evento |
+
+## Como rodar o projeto
+
+### Pré-requisitos
+- Node.js
+- PostgreSQL rodando localmente (não há Docker/docker-compose no projeto)
+
+### Passos
 
 ```bash
-$ npm install
+# 1. Instalar dependências
+npm install
+
+# 2. Criar um arquivo .env na raiz com as variáveis:
+# PORT=3000
+# DATABASE_URL="postgresql://usuario:senha@localhost:5432/desafio_nest?schema=public"
+
+# 3. Rodar as migrations do Prisma
+npx prisma migrate dev
+
+# 4. Subir a aplicação em modo desenvolvimento (watch)
+npm run dev
 ```
 
-## Compile and run the project
-
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+A API sobe em `http://localhost:3000` e a documentação Swagger fica disponível em `http://localhost:3000/api`.
