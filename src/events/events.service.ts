@@ -2,12 +2,13 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { Events } from 'src/generated/prisma/client';
 
 @Injectable()
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createEventDto: CreateEventDto) {
+  async create(createEventDto: CreateEventDto): Promise<Events> {
     const isConflicting = await this.prisma.events.findFirst({
       where: {
         startDateTime: {
@@ -42,11 +43,11 @@ export class EventsService {
     });
   }
 
-  async findAll() {
+  async findAll(): Promise<Events[]> {
     return await this.prisma.events.findMany();
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<Events> {
     const event = await this.prisma.events.findUnique({
       where: { id },
     });
@@ -58,7 +59,7 @@ export class EventsService {
     return event;
   }
 
-  async update(id: string, updateEventDto: UpdateEventDto) {
+  async update(id: string, updateEventDto: UpdateEventDto): Promise<Events> {
     await this.findOne(id);
 
     return this.prisma.events.update({
@@ -67,7 +68,7 @@ export class EventsService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<Events> {
     await this.findOne(id);
 
     return this.prisma.events.update({

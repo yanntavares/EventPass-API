@@ -2,12 +2,13 @@ import { ConflictException, NotFoundException, Injectable } from '@nestjs/common
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import type { Events, User } from 'src/generated/prisma/client';
 
 @Injectable()
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto): Promise<User> {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
@@ -21,11 +22,11 @@ export class UserService {
     });
   }
 
-  async findAll() {
+  async findAll(): Promise<User[]> {
     return await this.prisma.user.findMany();
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<User> {
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -37,7 +38,7 @@ export class UserService {
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     await this.findOne(id);
 
     return this.prisma.user.update({
@@ -46,7 +47,7 @@ export class UserService {
     });
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<User> {
     await this.findOne(id);
 
     const [user] = await this.prisma.$transaction([
@@ -63,7 +64,7 @@ export class UserService {
     return user;
   }
 
-  async findUsersEvents(id: string) {
+  async findUsersEvents(id: string): Promise<Events[]> {
     await this.findOne(id);
     return this.prisma.events.findMany({
       where: { userID: id },
