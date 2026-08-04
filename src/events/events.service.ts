@@ -71,7 +71,7 @@ export class EventsService {
     await this.findOne(id);
 
     return this.prisma.events.update({
-      where: { id },
+      where: { id, status: 'SCHEDULED' },
       data: { status: 'CANCELED' },
     });
   }
