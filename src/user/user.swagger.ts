@@ -193,6 +193,36 @@ export function ApiDocDeleteUser() {
   );
 }
 
+export function ApiDocDeleteUserPermanently() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Deleta um usuário permanentemente pelo ID',
+      description:
+        'Deleta um usuário específico permanentemente com base no ID fornecido, deletando seus eventos em cascata',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'ID do usuário a ser deletado permanentemente',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Usuário deletado permanentemente com sucesso',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Usuário não encontrado',
+    }),
+    ApiResponse({
+      status: 500,
+      description: 'Erro interno do servidor',
+    }),
+  );
+}
+
 export function ApiDocFindUsersEvents() {
   return applyDecorators(
     ApiOperation({

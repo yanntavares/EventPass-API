@@ -5,6 +5,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import {
   ApiDocCreateUser,
   ApiDocDeleteUser,
+  ApiDocDeleteUserPermanently,
   ApiDocFindAllUsers,
   ApiDocFindUserById,
   ApiDocFindUsersEvents,
@@ -43,6 +44,12 @@ export class UserController {
   @ApiDocDeleteUser()
   remove(@Param('id') id: string) {
     return this.userService.remove(id);
+  }
+
+  @Delete(':id/permanent')
+  @ApiDocDeleteUserPermanently()
+  deleteUserPermanently(@Param('id') id: string) {
+    return this.userService.deleteUserPermanently(id);
   }
 
   @Get(':id/events')

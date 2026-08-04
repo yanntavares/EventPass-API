@@ -64,6 +64,21 @@ export class UserService {
     return user;
   }
 
+  async deleteUserPermanently(id: string): Promise<void> {
+    await this.findOne(id);
+
+    await this.prisma.$transaction([
+      this.prisma.events.deleteMany({
+        where: { userID: id, status: 'SCHEDULED' },
+      }),
+      this.prisma.user.delete({
+        where: { id },
+      }),
+    ]);
+
+    return;
+  }
+
   async findUsersEvents(id: string): Promise<Events[]> {
     await this.findOne(id);
     return this.prisma.events.findMany({
