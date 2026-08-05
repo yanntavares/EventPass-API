@@ -69,7 +69,7 @@ export class UserService {
 
     await this.prisma.$transaction([
       this.prisma.events.deleteMany({
-        where: { userID: id, status: 'SCHEDULED' },
+        where: { userID: id },
       }),
       this.prisma.user.delete({
         where: { id },
